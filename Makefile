@@ -1,3 +1,4 @@
+#comment
 compile:
 	bash -c "source ../tools/set_sde.bash && ~/tools/p4_build.sh --with-p4c=bf-p4c /root/P4_CCA_ID/p4src/basic.p4"
 
