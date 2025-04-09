@@ -19,10 +19,6 @@ typedef bit<8>  inference_result_t;
  ***********************  H E A D E R S  *********************************
  *************************************************************************/
 
-/*  Define all the headers the program will recognize             */
-/*  The actual sets of headers processed by each gress can differ */
-
-/* Standard ethernet header */
 header ethernet_h {
     bit<48>   dst_addr;
     bit<48>   src_addr;
@@ -69,14 +65,11 @@ header report_h {
     inference_result_t cca;
     bit<8> cca_vote_bbr;
     bit<8> cca_vote_cubic;
-
 }
 
 /*************************************************************************
  **************  I N G R E S S   P R O C E S S I N G   *******************
  *************************************************************************/
-
-    /***********************  H E A D E R S  ************************/
 
 struct my_ingress_headers_t {
     ethernet_h   ethernet;
@@ -85,8 +78,6 @@ struct my_ingress_headers_t {
     report_h     report;
 }
 
-    /******  G L O B A L   I N G R E S S   M E T A D A T A  *********/
-
 struct my_ingress_metadata_t {
     bit<48> interarrival_value;
     bit<48> ingress_timestamp;
@@ -94,15 +85,11 @@ struct my_ingress_metadata_t {
     bit<32> data_sent;
 }
 
-    /***********************  P A R S E R  **************************/
-parser IngressParser(packet_in        pkt,
-    /* User */
-    out my_ingress_headers_t          hdr,
-    out my_ingress_metadata_t         meta,
-    /* Intrinsic */
-    out ingress_intrinsic_metadata_t  ig_intr_md)
+parser IngressParser(packet_in pkt,
+    out my_ingress_headers_t hdr,
+    out my_ingress_metadata_t meta,
+    out ingress_intrinsic_metadata_t ig_intr_md)
 {
-    /* This is a mandatory state, required by Tofino Architecture */
     state start {
         pkt.extract(ig_intr_md);
         pkt.advance(PORT_METADATA_SIZE);
@@ -120,15 +107,14 @@ parser IngressParser(packet_in        pkt,
     state parse_ipv4 {
         pkt.extract(hdr.ipv4);
         transition select(hdr.ipv4.protocol) {
-            TYPE_TCP: parse_tcp;
             TYPE_REPORT: parse_report;
-            default: accept;
+            default: parse_tcp;
         }
     }
 
     state parse_tcp {
-        packet.extract(hdr.tcp);
-        transition select(hdr.tcp.dstPort){
+        pkt.extract(hdr.tcp);
+        transition select(hdr.tcp.dstPort) {
             TYPE_CUSTOM: parse_report;
             TYPE_CUSTOM2: parse_report;
             default: accept;
@@ -136,61 +122,45 @@ parser IngressParser(packet_in        pkt,
     }
 
     state parse_report {
-        packet.extract(hdr.report);
+        pkt.extract(hdr.report);
         transition accept;
     }
 }
 
-    /***************** M A T C H - A C T I O N  *********************/ 
-
 control Ingress(
-    /* User */
-    inout my_ingress_headers_t                       hdr,
-    inout my_ingress_metadata_t                      meta,
-    /* Intrinsic */
-    in    ingress_intrinsic_metadata_t               ig_intr_md,
-    in    ingress_intrinsic_metadata_from_parser_t   ig_prsr_md,
-    inout ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md,
-    inout ingress_intrinsic_metadata_for_tm_t        ig_tm_md)
-{
-    // Registros de estado
-    register<bit<48>>(65535) last_timestamp_reg;
-    register<bit<32>>(1048576) bytes_transmitted;
-    register<bit<32>>(1048576) sending_rate_prev_time;
-
-
+    inout my_ingress_headers_t hdr,
+    inout my_ingress_metadata_t meta,
+    in ingress_intrinsic_metadata_t ig_intr_md,
+    in ingress_intrinsic_metadata_from_parser_t ig_prsr_md,
+    inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
+    inout ingress_intrinsic_metadata_for_tm_t ig_tm_md,
+    register<bit<48>>(65535) last_timestamp_reg,
+    register<bit<32>>(1048576) bytes_transmitted,
+    register<bit<32>>(1048576) sending_rate_prev_time
+) {
     action send_using_port(PortId_t port){
-	ig_tm_md.ucast_egress_port = port;   
+        ig_tm_md.ucast_egress_port = port;
     }
 
     action drop() {
         ig_dprsr_md.drop_ctl = 1;
     }
 
-    // Acción para calcular el interarrival time
     action get_interarrival_time() {
         bit<48> last_timestamp;
         bit<48> current_timestamp;
         bit<16> flow_id;
 
-        // Calcular el hash para el flujo
-        hash(
-            flow_id, 
-            HashAlgorithm.crc16, 
-            (bit<1>)0, 
-            {
-                hdr.ipv4.src_addr,
-                hdr.ipv4.dst_addr,
-                hdr.tcp.src_port,
-                hdr.tcp.dst_port
-            }, 
-            (bit<16>) 65535
-        );
+        hash(flow_id, HashAlgorithm.crc16, (bit<1>)0, {
+            hdr.ipv4.src_addr,
+            hdr.ipv4.dst_addr,
+            hdr.tcp.srcPort,
+            hdr.tcp.dstPort
+        }, (bit<16>)65535);
 
         last_timestamp_reg.read(last_timestamp, (bit<32>)flow_id);
         current_timestamp = ig_intr_md.ingress_global_timestamp;
 
-        // Calcular el tiempo de interarrival
         if (last_timestamp != 0) {
             meta.interarrival_value = current_timestamp - last_timestamp;
         } else {
@@ -199,35 +169,26 @@ control Ingress(
         last_timestamp_reg.write((bit<32>)flow_id, current_timestamp);
     }
 
-    // Acción para calcular el ID del flujo
     action compute_flow_id() {
-        hash(
-            meta.flow_id, 
-            HashAlgorithm.crc16, 
-            (bit<1>)0, 
-            {
-                hdr.ipv4.src_addr,
-                hdr.ipv4.dst_addr,
-                hdr.ipv4.protocol,
-                hdr.tcp.src_port,
-                hdr.tcp.dst_port
-            }, 
-            (bit<16>) 65535
-        );
+        hash(meta.flow_id, HashAlgorithm.crc16, (bit<1>)0, {
+            hdr.ipv4.src_addr,
+            hdr.ipv4.dst_addr,
+            hdr.ipv4.protocol,
+            hdr.tcp.srcPort,
+            hdr.tcp.dstPort
+        }, (bit<16>)65535);
     }
 
-    // Tabla de reenvío
     table forwarding {
-        key = { 
-            ig_intr_md.ingress_port : exact; 
+        key = {
+            ig_intr_md.ingress_port : exact;
         }
         actions = {
-            send_using_port; 
+            send_using_port;
             drop;
         }
     }
 
-    // Acción para actualizar la tasa de envío
     action update_sending_rate() {
         bit<32> bytes_transmitted_flow;
         bit<32> prev_time;
@@ -252,7 +213,6 @@ control Ingress(
     }
 
     apply {
-        // Procesar si el paquete tiene cabecera IPv4
         if (hdr.ipv4.isValid()) {
             compute_flow_id();
             forwarding.apply();
@@ -262,14 +222,11 @@ control Ingress(
         }
     }
 }
-    /*********************  D E P A R S E R  ************************/
 
 control IngressDeparser(packet_out pkt,
-    /* User */
-    inout my_ingress_headers_t                       hdr,
-    in    my_ingress_metadata_t                      meta,
-    /* Intrinsic */
-    in    ingress_intrinsic_metadata_for_deparser_t  ig_dprsr_md)
+    inout my_ingress_headers_t hdr,
+    in my_ingress_metadata_t meta,
+    in ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md)
 {
     apply {
         pkt.emit(hdr.ethernet);
@@ -285,13 +242,9 @@ control IngressDeparser(packet_out pkt,
     }
 }
 
-
-
 /*************************************************************************
  ****************  E G R E S S   P R O C E S S I N G   *******************
  *************************************************************************/
-
-    /***********************  H E A D E R S  ************************/
 
 struct my_egress_headers_t {
     ethernet_h ethernet;
@@ -300,8 +253,6 @@ struct my_egress_headers_t {
     report_h   report;
 }
 
-    /********  G L O B A L   E G R E S S   M E T A D A T A  *********/
-
 struct my_egress_metadata_t {
     bit<48> ingress_timestamp;
     bit<48> interarrival_value;
@@ -309,14 +260,10 @@ struct my_egress_metadata_t {
     bit<8>  cca;
 }
 
-    /***********************  P A R S E R  **************************/
-
-parser EgressParser(packet_in        pkt,
-    /* User */
-    out my_egress_headers_t          hdr,
-    out my_egress_metadata_t         meta,
-    /* Intrinsic */
-    out egress_intrinsic_metadata_t  eg_intr_md)
+parser EgressParser(packet_in pkt,
+    out my_egress_headers_t hdr,
+    out my_egress_metadata_t meta,
+    out egress_intrinsic_metadata_t eg_intr_md)
 {
     state start {
         pkt.extract(eg_intr_md);
@@ -324,27 +271,23 @@ parser EgressParser(packet_in        pkt,
     }
 }
 
-    /***************** M A T C H - A C T I O N  *********************/
-
 control Egress(
-    /* User */
-    inout my_egress_headers_t                          hdr,
-    inout my_egress_metadata_t                         meta,
-    /* Intrinsic */
-    in    egress_intrinsic_metadata_t                  eg_intr_md,
-    in    egress_intrinsic_metadata_from_parser_t      eg_prsr_md,
-    inout egress_intrinsic_metadata_for_deparser_t     eg_dprsr_md,
-    inout egress_intrinsic_metadata_for_output_port_t  eg_oport_md)
+    inout my_egress_headers_t hdr,
+    inout my_egress_metadata_t meta,
+    in egress_intrinsic_metadata_t eg_intr_md,
+    in egress_intrinsic_metadata_from_parser_t eg_prsr_md,
+    inout egress_intrinsic_metadata_for_deparser_t eg_dprsr_md,
+    inout egress_intrinsic_metadata_for_output_port_t eg_oport_md)
 {
     action add_sw_stats(switch_ID_t ID) {
         hdr.report.setValid();
-        hdr.report.ingress_timestamp    = meta.ingress_timestamp;
-        hdr.report.egress_timestamp     = eg_intr_md.global_tstamp;
-        hdr.report.q_delay              = eg_intr_md.global_tstamp - meta.ingress_timestamp;
-        hdr.report.q_depth              = (bit<24>)eg_intr_md.enq_qdepth;
-        hdr.report.switch_ID            = ID;
-        hdr.report.interarrival_value   = meta.interarrival_value;
-        hdr.report.data_sent            = meta.data_sent;
+        hdr.report.ingress_timestamp = meta.ingress_timestamp;
+        hdr.report.egress_timestamp  = eg_intr_md.global_tstamp;
+        hdr.report.q_delay           = eg_intr_md.global_tstamp - meta.ingress_timestamp;
+        hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
+        hdr.report.switch_ID         = ID;
+        hdr.report.interarrival_value = meta.interarrival_value;
+        hdr.report.data_sent         = meta.data_sent;
 
         hdr.ipv4.totalLen = hdr.ipv4.totalLen + 22;
     }
@@ -388,14 +331,10 @@ control Egress(
     }
 }
 
-    /*********************  D E P A R S E R  ************************/
-
 control EgressDeparser(packet_out pkt,
-    /* User */
-    inout my_egress_headers_t                       hdr,
-    in    my_egress_metadata_t                      meta,
-    /* Intrinsic */
-    in    egress_intrinsic_metadata_for_deparser_t  eg_dprsr_md)
+    inout my_egress_headers_t hdr,
+    in my_egress_metadata_t meta,
+    in egress_intrinsic_metadata_for_deparser_t eg_dprsr_md)
 {
     apply {
         pkt.emit(hdr.ethernet);
@@ -405,12 +344,18 @@ control EgressDeparser(packet_out pkt,
     }
 }
 
+// Declaración global de registros
+register<bit<48>>(65535) last_timestamp_reg;
+register<bit<32>>(1048576) bytes_transmitted;
+register<bit<32>>(1048576) sending_rate_prev_time;
 
-
-/************ F I N A L   P A C K A G E ******************************/
 Pipeline(
     IngressParser(),
-    Ingress(),
+    Ingress(
+        last_timestamp_reg,
+        bytes_transmitted,
+        sending_rate_prev_time
+    ),
     IngressDeparser(),
     EgressParser(),
     Egress(),
