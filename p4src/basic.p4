@@ -3,9 +3,9 @@
 #include <core.p4>
 #include <tna.p4>
 
-extern register<bit<48>>(65535) last_timestamp_reg;
-extern register<bit<32>>(1048576) bytes_transmitted;
-extern register<bit<32>>(1048576) sending_rate_prev_time;
+Register<bit<48>>(65535) last_timestamp_reg;
+Register<bit<32>>(1048576) bytes_transmitted;
+Register<bit<32>>(1048576) sending_rate_prev_time;
 
 /*************************************************************************
  ************* C O N S T A N T S    A N D   T Y P E S  *******************
@@ -290,7 +290,7 @@ control Egress(
         hdr.report.interarrival_value = meta.interarrival_value;
         hdr.report.data_sent         = meta.data_sent;
 
-        hdr.ipv4.totalLen = hdr.ipv4.totalLen + 22;
+        hdr.ipv4.total_len = hdr.ipv4.total_len + 22;
     }
 
     action set_result(inference_result_t val) {
@@ -319,7 +319,7 @@ control Egress(
             set_result;
             NoAction;
         }
-        size = NB_ENTRIES;
+        size = 1024;
         default_action = NoAction;
     }
 
@@ -345,18 +345,9 @@ control EgressDeparser(packet_out pkt,
     }
 }
 
-// Declaración global de registros
-register<bit<48>>(65535) last_timestamp_reg;
-register<bit<32>>(1048576) bytes_transmitted;
-register<bit<32>>(1048576) sending_rate_prev_time;
-
 Pipeline(
     IngressParser(),
-    Ingress(
-        last_timestamp_reg,
-        bytes_transmitted,
-        sending_rate_prev_time
-    ),
+    Ingress(),
     IngressDeparser(),
     EgressParser(),
     Egress(),
