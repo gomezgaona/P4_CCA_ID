@@ -198,7 +198,7 @@ control Ingress(
         bit<32> data_sent;
 
         bytes_transmitted.read(bytes_transmitted_flow, (bit<32>)meta.flow_id);
-        bytes_transmitted_flow += (bit<32>)hdr.ipv4.total_len;
+        bytes_transmitted_flow = bytes_transmitted_flow + (bit<32>)hdr.ipv4.total_len;
         bytes_transmitted.write((bit<32>)meta.flow_id, bytes_transmitted_flow);
 
         sending_rate_prev_time.read(prev_time, (bit<32>)meta.flow_id);
