@@ -3,6 +3,10 @@
 #include <core.p4>
 #include <tna.p4>
 
+extern register<bit<48>>(65535) last_timestamp_reg;
+extern register<bit<32>>(1048576) bytes_transmitted;
+extern register<bit<32>>(1048576) sending_rate_prev_time;
+
 /*************************************************************************
  ************* C O N S T A N T S    A N D   T Y P E S  *******************
 **************************************************************************/
@@ -133,10 +137,7 @@ control Ingress(
     in ingress_intrinsic_metadata_t ig_intr_md,
     in ingress_intrinsic_metadata_from_parser_t ig_prsr_md,
     inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
-    inout ingress_intrinsic_metadata_for_tm_t ig_tm_md,
-    register<bit<48>>(65535) last_timestamp_reg,
-    register<bit<32>>(1048576) bytes_transmitted,
-    register<bit<32>>(1048576) sending_rate_prev_time
+    inout ingress_intrinsic_metadata_for_tm_t ig_tm_md
 ) {
     action send_using_port(PortId_t port){
         ig_tm_md.ucast_egress_port = port;
