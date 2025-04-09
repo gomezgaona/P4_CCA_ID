@@ -2,7 +2,6 @@
 
 #include <core.p4>
 #include <tna.p4>
-#include <v1model.p4>
 
 Register<bit<48>>(65535) last_timestamp_reg;
 Register<bit<32>>(1048576) bytes_transmitted;
@@ -20,6 +19,40 @@ const bit<16> TYPE_CUSTOM2 = 4321;
 
 typedef bit<8>  inference_result_t;
 typedef bit<8> switch_ID_t;
+
+bit<32> crc32_hash(bit<32> input) {
+    bit<32> crc = 0xFFFFFFFF;  // Inicialización del valor de CRC
+
+    for (bit<32> i = 0; i < 32; i++) {
+        if ((crc ^ input) & 0x80000000) {
+            crc = (crc << 1) ^ 0x04C11DB7;
+        } else {
+            crc = crc << 1;
+        }
+        input = input << 1;
+    }
+
+    return crc;
+}
+
+// Implementación de hash personalizado para 4 campos
+bit<32> custom_hash_4_fields(bit<32> field1, bit<32> field2, bit<32> field3, bit<32> field4) {
+    bit<32> hash_result = crc32_hash(field1);
+    hash_result = crc32_hash(hash_result ^ field2);  // Combina los resultados
+    hash_result = crc32_hash(hash_result ^ field3);
+    hash_result = crc32_hash(hash_result ^ field4);
+    return hash_result;
+}
+
+// Implementación de hash personalizado para 5 campos
+bit<32> custom_hash_5_fields(bit<32> field1, bit<32> field2, bit<32> field3, bit<32> field4, bit<32> field5) {
+    bit<32> hash_result = crc32_hash(field1);
+    hash_result = crc32_hash(hash_result ^ field2);  // Combina los resultados
+    hash_result = crc32_hash(hash_result ^ field3);
+    hash_result = crc32_hash(hash_result ^ field4);
+    hash_result = crc32_hash(hash_result ^ field5);
+    return hash_result;
+}
 
 /*************************************************************************
  ***********************  H E A D E R S  *********************************
@@ -154,12 +187,17 @@ control Ingress(
         bit<48> current_timestamp;
         bit<16> flow_id;
 
-        hash(flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
-            hdr.ipv4.src_addr,
-            hdr.ipv4.dst_addr,
-            hdr.tcp.srcPort,
-            hdr.tcp.dstPort
-        }, (bit<16>)65535);
+        // hash(flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
+        //     hdr.ipv4.src_addr,
+        //     hdr.ipv4.dst_addr,
+        //     hdr.tcp.srcPort,
+        //     hdr.tcp.dstPort
+        // }, (bit<16>)65535);
+
+        custom_hash_4_fields(hdr.ipv4.src_addr, 
+                             hdr.ipv4.dst_addr, 
+                             hdr.tcp.srcPort, 
+                             hdr.tcp.dstPort)
 
         last_timestamp_reg.read(last_timestamp, (bit<32>)flow_id);
         current_timestamp = ig_intr_md.ingress_global_timestamp;
@@ -173,13 +211,19 @@ control Ingress(
     }
 
     action compute_flow_id() {
-        hash(meta.flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
-            hdr.ipv4.src_addr,
-            hdr.ipv4.dst_addr,
-            hdr.ipv4.protocol,
-            hdr.tcp.srcPort,
-            hdr.tcp.dstPort
-        }, (bit<16>)65535);
+        // hash(meta.flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
+        //     hdr.ipv4.src_addr,
+        //     hdr.ipv4.dst_addr,
+        //     hdr.ipv4.protocol,
+        //     hdr.tcp.srcPort,
+        //     hdr.tcp.dstPort
+        // }, (bit<16>)65535);
+
+        custom_hash_5_fields(hdr.ipv4.src_addr, 
+                             hdr.ipv4.dst_addr, 
+                             hdr.ipv4.protocol,
+                             hdr.tcp.srcPort, 
+                             hdr.tcp.dstPort)
     }
 
     table forwarding {
