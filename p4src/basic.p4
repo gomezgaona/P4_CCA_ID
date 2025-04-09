@@ -7,6 +7,9 @@ Register<bit<48>>(65535) last_timestamp_reg;
 Register<bit<32>>(1048576) bytes_transmitted;
 Register<bit<32>>(1048576) sending_rate_prev_time;
 
+
+Hash<bit<32>>(HashAlgorithm_t.CRC32) crc32;
+
 /*************************************************************************
  ************* C O N S T A N T S    A N D   T Y P E S  *******************
 **************************************************************************/
@@ -160,12 +163,10 @@ control Ingress(
         //     hdr.tcp.dstPort
         // }, (bit<16>)65535);
 
-        Hash<bit<32>>(HashAlgorithm_t.CRC32) crc32;
-        bit<32> result;
-        result = crc32.get({hdr.ipv4.src_addr,
-                            hdr.ipv4.dst_addr,
-                            hdr.tcp.srcPort,
-                            hdr.tcp.dstPort});
+        flow_id = crc32.get({hdr.ipv4.src_addr,
+                             hdr.ipv4.dst_addr,
+                             hdr.tcp.srcPort,
+                             hdr.tcp.dstPort});
 
         last_timestamp_reg.read(last_timestamp, (bit<32>)flow_id);
         current_timestamp = ig_intr_md.ingress_global_timestamp;
@@ -186,14 +187,12 @@ control Ingress(
         //     hdr.tcp.srcPort,
         //     hdr.tcp.dstPort
         // }, (bit<16>)65535);
-
-        Hash<bit<32>>(HashAlgorithm_t.CRC32) crc32;
-        bit<32> result;
-        result = crc32.get({hdr.ipv4.src_addr,
-                            hdr.ipv4.dst_addr,
-                            hdr.ipv4.protocol,
-                            hdr.tcp.srcPort,
-                            hdr.tcp.dstPort});
+        
+        meta.flow_id = crc32.get({hdr.ipv4.src_addr,
+                                  hdr.ipv4.dst_addr,
+                                  hdr.ipv4.protocol,
+                                  hdr.tcp.srcPort,
+                                  hdr.tcp.dstPort});
     }
 
     table forwarding {
