@@ -153,7 +153,7 @@ control Ingress(
         bit<48> current_timestamp;
         bit<16> flow_id;
 
-        hash(flow_id, HashAlgorithm.crc16, (bit<1>)0, {
+        hash(flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
             hdr.ipv4.src_addr,
             hdr.ipv4.dst_addr,
             hdr.tcp.srcPort,
@@ -172,7 +172,7 @@ control Ingress(
     }
 
     action compute_flow_id() {
-        hash(meta.flow_id, HashAlgorithm.crc16, (bit<1>)0, {
+        hash(meta.flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
             hdr.ipv4.src_addr,
             hdr.ipv4.dst_addr,
             hdr.ipv4.protocol,
