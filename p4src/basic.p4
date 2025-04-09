@@ -2,6 +2,7 @@
 
 #include <core.p4>
 #include <tna.p4>
+#include <v1model.p4>
 
 Register<bit<48>>(65535) last_timestamp_reg;
 Register<bit<32>>(1048576) bytes_transmitted;
