@@ -229,6 +229,8 @@ control Ingress(
             send_using_port;
             drop;
         }
+        size = 1024;
+        const default_action = drop();
     }
 
     // action update_sending_rate() {
@@ -372,7 +374,7 @@ control Egress(
             set_result;
             NoAction;
         }
-        size = 1024;
+        size = 8192;
         default_action = NoAction;
     }
 
