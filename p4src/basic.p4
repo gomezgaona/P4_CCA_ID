@@ -177,29 +177,7 @@ control Ingress(
         ig_dprsr_md.drop_ctl = 1;
     }
 
-    // action get_interarrival_time() {
-    //     bit<48> last_timestamp;
-    //     bit<48> current_timestamp;
-    //     bit<32> flow_id;
-
-    //     flow_id = crc32.get({hdr.ipv4.src_addr,
-    //                          hdr.ipv4.dst_addr,
-    //                          hdr.tcp.srcPort,
-    //                          hdr.tcp.dstPort});
-
-    //     last_timestamp_reg.read(last_timestamp, flow_id);
-    //     current_timestamp = ig_intr_md.ingress_mac_tstamp;
-
-    //     if (last_timestamp != 0) {
-    //         meta.interarrival_value = current_timestamp - last_timestamp;
-    //     } else {
-    //         meta.interarrival_value = 0;
-    //     }
-    //     last_timestamp_reg.write(flow_id, current_timestamp);
-    // }
-
     action get_interarrival_time() {
-        // bit<48> last_timestamp;
         bit<32> last_timestamp;
         bit<48> current_timestamp;
 
@@ -232,29 +210,6 @@ control Ingress(
         size = 1024;
         const default_action = drop();
     }
-
-    // action update_sending_rate() {
-    //     bit<32> bytes_transmitted_flow;
-    //     bit<32> prev_time;
-    //     bit<32> current_time;
-    //     bit<32> time_diff;
-    //     bit<32> data_sent;
-
-    //     bytes_transmitted.read(bytes_transmitted_flow, meta.flow_id);
-    //     bytes_transmitted_flow = bytes_transmitted_flow + (bit<32>)hdr.ipv4.total_len;
-    //     bytes_transmitted.write(meta.flow_id, bytes_transmitted_flow);
-
-    //     sending_rate_prev_time.read(prev_time, meta.flow_id);
-    //     current_time = (bit<32>)ig_intr_md.ingress_mac_tstamp;
-    //     time_diff = current_time - prev_time;
-
-    //     if (time_diff > 0) {
-    //         data_sent = bytes_transmitted_flow * 8;
-    //         meta.data_sent = data_sent;
-    //     }
-
-    //     sending_rate_prev_time.write(meta.flow_id, current_time);
-    // }
 
     action update_sending_rate() {
         bit<32> bytes;
@@ -324,7 +279,6 @@ parser EgressParser(packet_in pkt,
     out egress_intrinsic_metadata_t eg_intr_md)
 {
     state start {
-        meta.cca = 0;
         pkt.extract(eg_intr_md);
         transition parse_ethernet;
     }
