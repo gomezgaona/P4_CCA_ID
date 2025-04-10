@@ -316,14 +316,14 @@ struct my_egress_metadata_t {
     bit<8>  cca;
 }
 
-parser EgressParser(packet_in pkt,
-    out my_egress_headers_t hdr,
-    out my_egress_metadata_t meta,
-    out egress_intrinsic_metadata_t eg_intr_md)
+parser EgressParser(packet_out pkt,
+    inout my_egress_headers_t hdr,
+    in my_egress_metadata_t meta,
+    in egress_intrinsic_metadata_t eg_intr_md)
 {
-    state start {
-        pkt.extract(eg_intr_md);
-        transition accept;
+    apply {
+        pkt.emit(hdr);
+    }
     }
 }
 
