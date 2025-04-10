@@ -143,11 +143,11 @@ control Ingress(
 ) {
 
     // LAST_TIMESTAMP_REG
-    Register<bit<48>, bit<32>>(65535) last_timestamp_reg;
-    RegisterAction<bit<48>, bit<32>, bit<48>>(last_timestamp_reg) update_last_timestamp = {
-        void apply(inout bit<48> reg_data, out bit<48> result) {
+    Register<bit<32>, bit<32>>(65535) last_timestamp_reg;
+    RegisterAction<bit<32>, bit<32>, bit<32>>(last_timestamp_reg) update_last_timestamp = {
+        void apply(inout bit<32> reg_data, out bit<32> result) {
             result = reg_data;
-            reg_data = (bit<48>) ig_intr_md.ingress_mac_tstamp;
+            reg_data = (bit<32>) ig_intr_md.ingress_mac_tstamp;
         }
     };
 
@@ -199,7 +199,8 @@ control Ingress(
     // }
 
     action get_interarrival_time() {
-        bit<48> last_timestamp;
+        // bit<48> last_timestamp;
+        bit<32> last_timestamp;
         bit<48> current_timestamp;
 
         last_timestamp = update_last_timestamp.execute(meta.flow_id);
