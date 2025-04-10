@@ -207,7 +207,7 @@ control Ingress(
         current_timestamp = ig_intr_md.ingress_mac_tstamp;
 
         if (last_timestamp != 0) {
-            meta.interarrival_value = current_timestamp - last_timestamp;
+            meta.interarrival_value = current_timestamp - (bit<48>)last_timestamp;
         } else {
             meta.interarrival_value = 0;
         }
