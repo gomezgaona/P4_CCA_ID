@@ -319,10 +319,15 @@ struct my_egress_metadata_t {
 parser EgressParser(packet_in pkt,
     /* User */
     out my_egress_headers_t hdr,
-    inout my_egress_metadata_t meta,
+    out my_egress_metadata_t meta,
     /* Intrinsic */
     out egress_intrinsic_metadata_t eg_intr_md)
 {
+    apply {
+        // Evitar warning de "meta no inicializado"
+        meta = my_egress_metadata_t();
+    }
+
     state start {
         pkt.extract(eg_intr_md);
         transition parse_ethernet;
