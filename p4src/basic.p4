@@ -316,13 +316,46 @@ struct my_egress_metadata_t {
     bit<8>  cca;
 }
 
-parser EgressParser(packet_out pkt,
-    inout my_egress_headers_t hdr,
-    in my_egress_metadata_t meta,
-    in egress_intrinsic_metadata_t eg_intr_md)
+parser EgressParser(packet_in pkt,
+    /* User */
+    out my_egress_headers_t hdr,
+    out my_egress_metadata_t meta,
+    /* Intrinsic */
+    out egress_intrinsic_metadata_t eg_intr_md)
 {
-    apply {
-        pkt.emit(hdr);
+    state start {
+        pkt.extract(eg_intr_md);
+        transition parse_ethernet;
+    }
+
+    state parse_ethernet {
+        pkt.extract(hdr.ethernet);
+        transition select(hdr.ethernet.ether_type) {
+            ETHERTYPE_IPV4:  parse_ipv4;
+            default: accept;
+        }
+    }
+
+    state parse_ipv4 {
+        pkt.extract(hdr.ipv4);
+        transition select(hdr.ipv4.protocol) {
+            TYPE_REPORT: parse_report;
+            default: parse_tcp;
+        }
+    }
+
+    state parse_tcp {
+        pkt.extract(hdr.tcp);
+        transition select(hdr.tcp.dstPort) {
+            TYPE_CUSTOM: parse_report;
+            TYPE_CUSTOM2: parse_report;
+            default: accept;
+        }
+    }
+
+    state parse_report {
+        pkt.extract(hdr.report);
+        transition accept;
     }
 }
 
