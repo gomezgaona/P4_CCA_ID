@@ -3,10 +3,6 @@
 #include <core.p4>
 #include <tna.p4>
 
-Register<bit<48>>(65535) last_timestamp_reg;
-Register<bit<32>>(1048576) bytes_transmitted;
-Register<bit<32>>(1048576) sending_rate_prev_time;
-
 
 Hash<bit<32>>(HashAlgorithm_t.CRC32) crc32;
 
@@ -145,6 +141,34 @@ control Ingress(
     inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
     inout ingress_intrinsic_metadata_for_tm_t ig_tm_md
 ) {
+
+    // LAST_TIMESTAMP_REG
+    Register<bit<48>, bit<32>>(65535) last_timestamp_reg;
+    RegisterAction<bit<48>, bit<32>, bit<48>>(last_timestamp_reg) update_last_timestamp = {
+        void apply(inout bit<48> reg_data, out bit<48> result) {
+            result = reg_data;
+            reg_data = (bit<48>) ig_intr_md.ingress_mac_tstamp;
+        }
+    };
+
+    // BYTES_TRANSMITTED
+    Register<bit<32>, bit<32>>(65535) bytes_transmitted;
+    RegisterAction<bit<32>, bit<32>, bit<32>>(bytes_transmitted) update_bytes_transmitted = {
+        void apply(inout bit<32> reg_data, out bit<32> result) {
+            result = reg_data;
+            reg_data = reg_data + (bit<32>) hdr.ipv4.total_len;
+        }
+    };
+
+    // SENDING_RATE_PREV_TIME
+    Register<bit<32>, bit<32>>(65535) sending_rate_prev_time;
+    RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) update_prev_time = {
+        void apply(inout bit<32> reg_data, out bit<32> result) {
+            result = reg_data;
+            reg_data = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+        }
+    };
+
     action send_using_port(PortId_t port){
         ig_tm_md.ucast_egress_port = port;
     }
@@ -153,24 +177,32 @@ control Ingress(
         ig_dprsr_md.drop_ctl = 1;
     }
 
+    // action get_interarrival_time() {
+    //     bit<48> last_timestamp;
+    //     bit<48> current_timestamp;
+    //     bit<32> flow_id;
+
+    //     flow_id = crc32.get({hdr.ipv4.src_addr,
+    //                          hdr.ipv4.dst_addr,
+    //                          hdr.tcp.srcPort,
+    //                          hdr.tcp.dstPort});
+
+    //     last_timestamp_reg.read(last_timestamp, flow_id);
+    //     current_timestamp = ig_intr_md.ingress_mac_tstamp;
+
+    //     if (last_timestamp != 0) {
+    //         meta.interarrival_value = current_timestamp - last_timestamp;
+    //     } else {
+    //         meta.interarrival_value = 0;
+    //     }
+    //     last_timestamp_reg.write(flow_id, current_timestamp);
+    // }
+
     action get_interarrival_time() {
         bit<48> last_timestamp;
         bit<48> current_timestamp;
-        bit<32> flow_id;
 
-        // hash(flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
-        //     hdr.ipv4.src_addr,
-        //     hdr.ipv4.dst_addr,
-        //     hdr.tcp.srcPort,
-        //     hdr.tcp.dstPort
-        // }, (bit<16>)65535);
-
-        flow_id = crc32.get({hdr.ipv4.src_addr,
-                             hdr.ipv4.dst_addr,
-                             hdr.tcp.srcPort,
-                             hdr.tcp.dstPort});
-
-        last_timestamp_reg.read(last_timestamp, flow_id);
+        last_timestamp = update_last_timestamp.execute(meta.flow_id);
         current_timestamp = ig_intr_md.ingress_mac_tstamp;
 
         if (last_timestamp != 0) {
@@ -178,18 +210,9 @@ control Ingress(
         } else {
             meta.interarrival_value = 0;
         }
-        last_timestamp_reg.write(flow_id, current_timestamp);
     }
 
     action compute_flow_id() {
-        // hash(meta.flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
-        //     hdr.ipv4.src_addr,
-        //     hdr.ipv4.dst_addr,
-        //     hdr.ipv4.protocol,
-        //     hdr.tcp.srcPort,
-        //     hdr.tcp.dstPort
-        // }, (bit<16>)65535);
-        
         meta.flow_id = crc32.get({hdr.ipv4.src_addr,
                                   hdr.ipv4.dst_addr,
                                   hdr.ipv4.protocol,
@@ -207,27 +230,43 @@ control Ingress(
         }
     }
 
+    // action update_sending_rate() {
+    //     bit<32> bytes_transmitted_flow;
+    //     bit<32> prev_time;
+    //     bit<32> current_time;
+    //     bit<32> time_diff;
+    //     bit<32> data_sent;
+
+    //     bytes_transmitted.read(bytes_transmitted_flow, meta.flow_id);
+    //     bytes_transmitted_flow = bytes_transmitted_flow + (bit<32>)hdr.ipv4.total_len;
+    //     bytes_transmitted.write(meta.flow_id, bytes_transmitted_flow);
+
+    //     sending_rate_prev_time.read(prev_time, meta.flow_id);
+    //     current_time = (bit<32>)ig_intr_md.ingress_mac_tstamp;
+    //     time_diff = current_time - prev_time;
+
+    //     if (time_diff > 0) {
+    //         data_sent = bytes_transmitted_flow * 8;
+    //         meta.data_sent = data_sent;
+    //     }
+
+    //     sending_rate_prev_time.write(meta.flow_id, current_time);
+    // }
+
     action update_sending_rate() {
-        bit<32> bytes_transmitted_flow;
+        bit<32> bytes;
         bit<32> prev_time;
         bit<32> current_time;
         bit<32> time_diff;
-        bit<32> data_sent;
 
-        bytes_transmitted.read(bytes_transmitted_flow, meta.flow_id);
-        bytes_transmitted_flow = bytes_transmitted_flow + (bit<32>)hdr.ipv4.total_len;
-        bytes_transmitted.write(meta.flow_id, bytes_transmitted_flow);
-
-        sending_rate_prev_time.read(prev_time, meta.flow_id);
-        current_time = (bit<32>)ig_intr_md.ingress_mac_tstamp;
+        bytes = update_bytes_transmitted.execute(meta.flow_id);
+        prev_time = update_prev_time.execute(meta.flow_id);
+        current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
         time_diff = current_time - prev_time;
 
         if (time_diff > 0) {
-            data_sent = bytes_transmitted_flow * 8;
-            meta.data_sent = data_sent;
+            meta.data_sent = bytes * 8;
         }
-
-        sending_rate_prev_time.write(meta.flow_id, current_time);
     }
 
     apply {
