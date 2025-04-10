@@ -324,7 +324,6 @@ parser EgressParser(packet_out pkt,
     apply {
         pkt.emit(hdr);
     }
-    }
 }
 
 control Egress(
