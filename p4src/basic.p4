@@ -156,7 +156,7 @@ control Ingress(
     action get_interarrival_time() {
         bit<48> last_timestamp;
         bit<48> current_timestamp;
-        bit<16> flow_id;
+        bit<32> flow_id;
 
         // hash(flow_id, HashAlgorithm_t.crc16, (bit<1>)0, {
         //     hdr.ipv4.src_addr,
@@ -170,7 +170,7 @@ control Ingress(
                              hdr.tcp.srcPort,
                              hdr.tcp.dstPort});
 
-        last_timestamp_reg.read(last_timestamp, (bit<32>)flow_id);
+        last_timestamp_reg.read(last_timestamp, flow_id);
         current_timestamp = ig_intr_md.ingress_mac_tstamp;
 
         if (last_timestamp != 0) {
@@ -178,7 +178,7 @@ control Ingress(
         } else {
             meta.interarrival_value = 0;
         }
-        last_timestamp_reg.write((bit<32>)flow_id, current_timestamp);
+        last_timestamp_reg.write(flow_id, current_timestamp);
     }
 
     action compute_flow_id() {
@@ -214,11 +214,11 @@ control Ingress(
         bit<32> time_diff;
         bit<32> data_sent;
 
-        bytes_transmitted.read(bytes_transmitted_flow, (bit<32>)meta.flow_id);
+        bytes_transmitted.read(bytes_transmitted_flow, meta.flow_id);
         bytes_transmitted_flow = bytes_transmitted_flow + (bit<32>)hdr.ipv4.total_len;
-        bytes_transmitted.write((bit<32>)meta.flow_id, bytes_transmitted_flow);
+        bytes_transmitted.write(meta.flow_id, bytes_transmitted_flow);
 
-        sending_rate_prev_time.read(prev_time, (bit<32>)meta.flow_id);
+        sending_rate_prev_time.read(prev_time, meta.flow_id);
         current_time = (bit<32>)ig_intr_md.ingress_mac_tstamp;
         time_diff = current_time - prev_time;
 
@@ -227,7 +227,7 @@ control Ingress(
             meta.data_sent = data_sent;
         }
 
-        sending_rate_prev_time.write((bit<32>)meta.flow_id, current_time);
+        sending_rate_prev_time.write(meta.flow_id, current_time);
     }
 
     apply {
