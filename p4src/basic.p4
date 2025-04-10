@@ -324,7 +324,7 @@ parser EgressParser(packet_in pkt,
     out egress_intrinsic_metadata_t eg_intr_md)
 {
     state start {
-        meta.cca = 0
+        meta.cca = 0;
         pkt.extract(eg_intr_md);
         transition parse_ethernet;
     }
