@@ -323,12 +323,8 @@ parser EgressParser(packet_in pkt,
     /* Intrinsic */
     out egress_intrinsic_metadata_t eg_intr_md)
 {
-    apply {
-        // Evitar warning de "meta no inicializado"
-        meta = my_egress_metadata_t();
-    }
-
     state start {
+        meta = my_egress_metadata_t();
         pkt.extract(eg_intr_md);
         transition parse_ethernet;
     }
