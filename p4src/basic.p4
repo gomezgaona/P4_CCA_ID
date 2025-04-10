@@ -319,7 +319,7 @@ struct my_egress_metadata_t {
 parser EgressParser(packet_in pkt,
     /* User */
     out my_egress_headers_t hdr,
-    inout my_egress_metadata_t meta,
+    out my_egress_metadata_t meta,
     /* Intrinsic */
     out egress_intrinsic_metadata_t eg_intr_md)
 {
