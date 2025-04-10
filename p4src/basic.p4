@@ -136,8 +136,10 @@ parser IngressParser(packet_in pkt,
 }
 
 control Ingress(
+    /* User */
     inout my_ingress_headers_t hdr,
     inout my_ingress_metadata_t meta,
+    /* Intrinsic */
     in ingress_intrinsic_metadata_t ig_intr_md,
     in ingress_intrinsic_metadata_from_parser_t ig_prsr_md,
     inout ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md,
@@ -169,7 +171,7 @@ control Ingress(
                              hdr.tcp.dstPort});
 
         last_timestamp_reg.read(last_timestamp, (bit<32>)flow_id);
-        current_timestamp = ig_intr_md.ingress_global_timestamp;
+        current_timestamp = ig_intr_md.ingress_mac_tstamp;
 
         if (last_timestamp != 0) {
             meta.interarrival_value = current_timestamp - last_timestamp;
@@ -217,7 +219,7 @@ control Ingress(
         bytes_transmitted.write((bit<32>)meta.flow_id, bytes_transmitted_flow);
 
         sending_rate_prev_time.read(prev_time, (bit<32>)meta.flow_id);
-        current_time = (bit<32>)ig_intr_md.ingress_global_timestamp;
+        current_time = (bit<32>)ig_intr_md.ingress_mac_tstamp;
         time_diff = current_time - prev_time;
 
         if (time_diff > 0) {
@@ -233,15 +235,17 @@ control Ingress(
             compute_flow_id();
             forwarding.apply();
             get_interarrival_time();
-            meta.ingress_timestamp = ig_intr_md.ingress_global_timestamp;
+            meta.ingress_timestamp = ig_intr_md.ingress_mac_tstamp;
             update_sending_rate();
         }
     }
 }
 
 control IngressDeparser(packet_out pkt,
+    /* User */
     inout my_ingress_headers_t hdr,
     in my_ingress_metadata_t meta,
+    /* Intrinsic */
     in ingress_intrinsic_metadata_for_deparser_t ig_dprsr_md)
 {
     apply {
@@ -298,8 +302,8 @@ control Egress(
     action add_sw_stats(switch_ID_t ID) {
         hdr.report.setValid();
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
-        hdr.report.egress_timestamp  = eg_intr_md.global_tstamp;
-        hdr.report.q_delay           = eg_intr_md.global_tstamp - meta.ingress_timestamp;
+        hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
+        hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
