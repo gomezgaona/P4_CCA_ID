@@ -289,15 +289,9 @@ control IngressDeparser(packet_out pkt,
 {
     apply {
         pkt.emit(hdr.ethernet);
-        if (hdr.ipv4.isValid()) {
-            pkt.emit(hdr.ipv4);
-        }
-        if (hdr.tcp.isValid()) {
-            pkt.emit(hdr.tcp);
-        }
-        if (hdr.report.isValid()) {
-            pkt.emit(hdr.report);
-        }
+        pkt.emit(hdr.ipv4);
+        pkt.emit(hdr.tcp);
+        pkt.emit(hdr.report);
     }
 }
 
