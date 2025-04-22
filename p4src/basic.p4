@@ -370,7 +370,7 @@ control Egress(
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
         // hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
         bit<64> q_delay;
-        compute_q_delay.apply(meta.flow_id, (bit<64>)meta.ingress_timestamp, (bit<64>)eg_prsr_md.global_tstamp, q_delay);
+        compute_q_delay.apply((bit<64>)meta.ingress_timestamp, (bit<64>)eg_prsr_md.global_tstamp, q_delay);
         hdr.report.q_delay = q_delay;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
