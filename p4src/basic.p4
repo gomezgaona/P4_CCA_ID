@@ -177,19 +177,19 @@ control Ingress(
         ig_dprsr_md.drop_ctl = 1;
     }
 
-    action get_interarrival_time() {
-        bit<32> last_timestamp;
-        bit<48> current_timestamp;
+    // action get_interarrival_time() {
+    //     bit<32> last_timestamp;
+    //     bit<48> current_timestamp;
 
-        last_timestamp = update_last_timestamp.execute(meta.flow_id);
-        current_timestamp = ig_intr_md.ingress_mac_tstamp;
+    //     last_timestamp = update_last_timestamp.execute(meta.flow_id);
+    //     current_timestamp = ig_intr_md.ingress_mac_tstamp;
 
-        if (last_timestamp != 0) {
-            meta.interarrival_value = current_timestamp - (bit<48>)last_timestamp;
-        } else {
-            meta.interarrival_value = 0;
-        }
-    }
+    //     if (last_timestamp != 0) {
+    //         meta.interarrival_value = current_timestamp - (bit<48>)last_timestamp;
+    //     } else {
+    //         meta.interarrival_value = 0;
+    //     }
+    // }
 
     action compute_flow_id() {
         meta.flow_id = crc32.get({hdr.ipv4.src_addr,
@@ -211,29 +211,29 @@ control Ingress(
         const default_action = drop();
     }
 
-    action update_sending_rate() {
-        bit<32> bytes;
-        bit<32> prev_time;
-        bit<32> current_time;
-        bit<32> time_diff;
+    // action update_sending_rate() {
+    //     bit<32> bytes;
+    //     bit<32> prev_time;
+    //     bit<32> current_time;
+    //     bit<32> time_diff;
 
-        bytes = update_bytes_transmitted.execute(meta.flow_id);
-        prev_time = update_prev_time.execute(meta.flow_id);
-        current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
-        time_diff = current_time - prev_time;
+    //     bytes = update_bytes_transmitted.execute(meta.flow_id);
+    //     prev_time = update_prev_time.execute(meta.flow_id);
+    //     current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+    //     time_diff = current_time - prev_time;
 
-        if (time_diff > 0) {
-            meta.data_sent = bytes * 8;
-        }
-    }
+    //     if (time_diff > 0) {
+    //         meta.data_sent = bytes * 8;
+    //     }
+    // }
 
     apply {
         if (hdr.ipv4.isValid()) {
             compute_flow_id();
             forwarding.apply();
-            get_interarrival_time();
+            // get_interarrival_time();
             meta.ingress_timestamp = ig_intr_md.ingress_mac_tstamp;
-            update_sending_rate();
+            // update_sending_rate();
         }
     }
 }
@@ -280,9 +280,6 @@ parser EgressParser(packet_in pkt,
 {
     state start {
         pkt.extract(eg_intr_md);
-        meta.ingress_timestamp = 0;
-        meta.interarrival_value = 0;
-        meta.data_sent = 0;
         transition parse_ethernet;
     }
 
