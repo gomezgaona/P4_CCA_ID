@@ -360,7 +360,7 @@ control Egress(
     action add_sw_stats(switch_ID_t ID) {
         hdr.report.setValid();
         
-        meta.global_tstamp_metadata = eg_prsr_md.global_tstamp;
+        meta.global_tstamp_metadata = (bit<64>)eg_prsr_md.global_tstamp;
         meta.ingress_timestamp_metadata = (bit<64>)meta.ingress_timestamp;
 
         bit<64> q_delay = meta.global_tstamp_metadata - meta.ingress_timestamp_metadata;
