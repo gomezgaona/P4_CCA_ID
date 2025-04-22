@@ -298,11 +298,12 @@ struct my_egress_headers_t {
 }
 
 struct my_egress_metadata_t {
+    bit<64> global_tstamp_metadata;
+    bit<64> ingress_timestamp_metadata;
     bit<48> ingress_timestamp;
     bit<48> interarrival_value;
     bit<32> data_sent;
     bit<8>  cca;
-    bit<48> global_tstamp_metadata;
 }
 
 parser EgressParser(packet_in pkt,
@@ -360,11 +361,13 @@ control Egress(
         hdr.report.setValid();
         
         meta.global_tstamp_metadata = eg_prsr_md.global_tstamp;
-        bit<64> q_delay = (bit<64>)meta.global_tstamp_metadata - (bit<64>)meta.ingress_timestamp;
-        
+        meta.ingress_timestamp_metadata = meta.ingress_timestamp;
+
+        bit<64> q_delay = meta.global_tstamp_metadata - meta.ingress_timestamp_metadata;
+
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
-        hdr.report.q_delay           = (bit<48>)q_delay;
+        hdr.report.q_delay           = q_delay;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
