@@ -62,7 +62,7 @@ header report_h {
     bit<8>  switch_ID;
     bit<48> ingress_timestamp;
     bit<48> egress_timestamp;
-    bit<64> q_delay;
+    bit<48> q_delay;
     bit<24> q_depth;
     bit<32> data_sent;
     bit<48> interarrival_value;
@@ -298,8 +298,6 @@ struct my_egress_headers_t {
 }
 
 struct my_egress_metadata_t {
-    bit<64> global_tstamp_metadata;
-    bit<64> ingress_timestamp_metadata;
     bit<48> ingress_timestamp;
     bit<48> interarrival_value;
     bit<32> data_sent;
@@ -359,15 +357,9 @@ control Egress(
 {
     action add_sw_stats(switch_ID_t ID) {
         hdr.report.setValid();
-        
-        meta.global_tstamp_metadata = (bit<64>)eg_prsr_md.global_tstamp;
-        meta.ingress_timestamp_metadata = (bit<64>)meta.ingress_timestamp;
-
-        bit<64> q_delay = meta.global_tstamp_metadata - meta.ingress_timestamp_metadata;
-
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
-        hdr.report.q_delay           = q_delay;
+        // hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
