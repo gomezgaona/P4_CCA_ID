@@ -356,10 +356,12 @@ control Egress(
     inout egress_intrinsic_metadata_for_output_port_t eg_oport_md)
 {
     action add_sw_stats(switch_ID_t ID) {
+        bit<48> q_delay;
         hdr.report.setValid();
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
-        hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
+        q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
+        hdr.report.q_delay = q_delay;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
