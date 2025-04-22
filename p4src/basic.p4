@@ -280,6 +280,9 @@ parser EgressParser(packet_in pkt,
 {
     state start {
         pkt.extract(eg_intr_md);
+        meta.ingress_timestamp = 0;
+        meta.interarrival_value = 0;
+        meta.data_sent = 0;
         transition parse_ethernet;
     }
 
@@ -353,9 +356,9 @@ control Egress(
 
     table decision_tree {
         key = {
-            hdr.report.q_delay            : exact;
-            hdr.report.q_depth            : exact;
-            hdr.report.interarrival_value : exact;
+            hdr.report.q_delay            : range;
+            hdr.report.q_depth            : range;
+            hdr.report.interarrival_value : range;
         }
         actions = {
             set_result;
