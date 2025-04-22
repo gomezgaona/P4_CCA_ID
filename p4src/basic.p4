@@ -356,14 +356,13 @@ control Egress(
     inout egress_intrinsic_metadata_for_output_port_t eg_oport_md)
 {
 
-    Register<bit<32>, bit<32>>(1024) ingress_ts_reg;
-    Register<bit<32>, bit<32>>(1024) egress_ts_reg;
+    Register<bit<32>, bit<32>>(1024) q_delay;
 
-    RegisterAction<bit<64>, bit<64>, bit<64>> compute_q_delay = {
+    RegisterAction<bit<64>, bit<64>, bit<64>>(q_delay) compute_q_delay = {
         void apply(inout bit<64> ingress_ts, inout bit<64> egress_ts, out bit<64> q_delay) {
             q_delay = egress_ts - ingress_ts;
         }
-    }
+    };
 
     action add_sw_stats(switch_ID_t ID) {
         hdr.report.setValid();
