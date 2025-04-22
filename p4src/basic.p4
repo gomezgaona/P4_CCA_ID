@@ -191,6 +191,15 @@ control Ingress(
     //     }
     // }
 
+    action compute_interarrival_valid(bit<32> last_timestamp) {
+        bit<48> current_timestamp = ig_intr_md.ingress_mac_tstamp;
+        meta.interarrival_value = current_timestamp - (bit<48>)last_timestamp;
+    }
+
+    action compute_interarrival_first() {
+        meta.interarrival_value = 0;
+    }
+
     action compute_flow_id() {
         meta.flow_id = crc32.get({hdr.ipv4.src_addr,
                                   hdr.ipv4.dst_addr,
@@ -227,13 +236,44 @@ control Ingress(
     //     }
     // }
 
+    action compute_sending_rate(bit<32> bytes, bit<32> prev_time) {
+        bit<32> current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+        bit<32> time_diff = current_time - prev_time;
+
+        if (time_diff > 0) {
+            meta.data_sent = bytes * 8;
+        } else {
+            meta.data_sent = 0; // opcionalmente puedes hacer esto también
+        }
+    }
+
+    action compute_sending_rate_zero() {
+        meta.data_sent = 0;
+    }
+
     apply {
         if (hdr.ipv4.isValid()) {
             compute_flow_id();
             forwarding.apply();
             // get_interarrival_time();
+            bit<32> last_timestamp = update_last_timestamp.execute(meta.flow_id);
+            if (last_timestamp != 0) {
+                compute_interarrival_valid(last_timestamp);
+            } else {
+                compute_interarrival_first();
+            }
             meta.ingress_timestamp = ig_intr_md.ingress_mac_tstamp;
             // update_sending_rate();
+            bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
+            bit<32> prev_time = update_prev_time.execute(meta.flow_id);
+            bit<32> current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+            bit<32> time_diff = current_time - prev_time;
+
+            if (time_diff > 0) {
+                compute_sending_rate(bytes, prev_time);
+            } else {
+                compute_sending_rate_zero();
+            }
         }
     }
 }
