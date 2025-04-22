@@ -302,7 +302,7 @@ struct my_egress_metadata_t {
     bit<48> interarrival_value;
     bit<32> data_sent;
     bit<8>  cca;
-    bit<48> global_tstamp;
+    bit<48> global_tstamp_metadata;
 }
 
 parser EgressParser(packet_in pkt,
