@@ -360,7 +360,7 @@ control Egress(
         hdr.report.setValid();
         
         meta.global_tstamp_metadata = eg_prsr_md.global_tstamp;
-        bit<64> q_delay = meta.global_tstamp_metadata - meta.ingress_timestamp;
+        bit<48> q_delay = meta.global_tstamp_metadata - meta.ingress_timestamp;
         
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
