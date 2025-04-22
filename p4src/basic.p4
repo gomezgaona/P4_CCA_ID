@@ -236,15 +236,8 @@ control Ingress(
     //     }
     // }
 
-    action compute_sending_rate(bit<32> bytes, bit<32> prev_time) {
-        bit<32> current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
-        bit<32> time_diff = current_time - prev_time;
-
-        if (time_diff > 0) {
-            meta.data_sent = bytes * 8;
-        } else {
-            meta.data_sent = 0; // opcionalmente puedes hacer esto también
-        }
+    action compute_sending_rate(bit<32> bytes) {
+        meta.data_sent = bytes * 8;
     }
 
     action compute_sending_rate_zero() {
@@ -270,7 +263,7 @@ control Ingress(
             bit<32> time_diff = current_time - prev_time;
 
             if (time_diff > 0) {
-                compute_sending_rate(bytes, prev_time);
+                compute_sending_rate(bytes);
             } else {
                 compute_sending_rate_zero();
             }
