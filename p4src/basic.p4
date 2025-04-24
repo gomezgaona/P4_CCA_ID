@@ -389,9 +389,10 @@ control Egress(
         // }
         if (hdr.ipv4.isValid()) {
             add_queue_statistics.apply();
-            
+
             bit<32> flow_id = hdr.report.data_sent[31:0]; // usa parte baja como índice (puedes mejorar esto si ya tienes `flow_id`)
-            bit<48> egress_ts = update_egress_timestamp.execute(flow_id);
+            bit<48> egress_ts;
+            update_egress_timestamp.execute(flow_id, egress_ts);
             compute_q_delay(egress_ts);
 
             decision_tree.apply();
