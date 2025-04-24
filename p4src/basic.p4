@@ -272,7 +272,9 @@ struct my_egress_metadata_t {
     bit<48> interarrival_value;
     bit<32> data_sent;
     bit<8>  cca;
-    bit<48> queue_delay;
+	bit<32> packet_hash;
+	bit<32> packet_queue_delay;		
+	bit<16> flow_id;
 }
 
 parser EgressParser(packet_in pkt,
@@ -326,17 +328,49 @@ control Egress(
     inout egress_intrinsic_metadata_for_deparser_t eg_dprsr_md,
     inout egress_intrinsic_metadata_for_output_port_t eg_oport_md)
 {
+	Hash<bit<16>>(HashAlgorithm_t.CRC16) hash;
+    action apply_hash() {
+        meta.flow_id = hash.get({
+            hdr.ipv4.src_addr,
+            hdr.ipv4.dst_addr,
+            hdr.ipv4.protocol,
+            hdr.tcp.src_port,
+            hdr.tcp.dst_port
+        });
+    }
+    table calc_flow_id {
+        actions = {
+            apply_hash;
+        }
+        const default_action = apply_hash();
+    }
 
-    Register<bit<32>, bit<48>>(65535) egress_timestamp_reg;
-    RegisterAction<bit<32>, bit<48>, bit<48>>(egress_timestamp_reg) update_egress_timestamp = {
-        void apply(inout bit<48> reg_data, out bit<48> result) {
-            result = eg_prsr_md.global_tstamp;
-            reg_data = result;
+    Hash<bit<32>>(HashAlgorithm_t.CRC32) packet_hash;
+    action apply_packet_hash() {
+        meta.packet_hash = packet_hash.get({
+            meta.flow_id,
+			hdr.tcp.seq_no
+        });
+    }
+    table calc_packet_hash {
+        actions = {
+            apply_packet_hash;
+        }
+        const default_action = apply_packet_hash();
+    }
+
+    RegisterAction<bit<32>, bit<17>, bit<32>>(packets_timestamp) calc_queue_delay_packet = {
+        void apply(inout bit<32> register_data, out bit<32> result) {
+			if(eg_prsr_md.global_tstamp[31:0] > register_data && eg_prsr_md.global_tstamp[31:0] - register_data < 200000000) {
+				result = eg_prsr_md.global_tstamp[31:0] - register_data;
+			} else {
+				result = 0;
+			}
         }
     };
 
-    action compute_q_delay() {
-        meta.queue_delay = eg_prsr_md.global_tstamp - hdr.tcp.ingress_timestamp;
+    action exec_calc_queue_delay_packet(){
+        meta.packet_queue_delay = calc_queue_delay_packet.execute(meta.packet_hash[16:0]);
     }
 
     action add_sw_stats(switch_ID_t ID) {
@@ -388,10 +422,12 @@ control Egress(
         //     decision_tree.apply();
         //     hdr.report.cca = meta.cca;
         // }
+		calc_flow_id.apply();
+		calc_packet_hash.apply();
         if (hdr.ipv4.isValid()) {
             add_queue_statistics.apply();
 
-            compute_q_delay();
+            exec_calc_queue_delay_packet();
 
             decision_tree.apply();
             hdr.report.cca = meta.cca;
