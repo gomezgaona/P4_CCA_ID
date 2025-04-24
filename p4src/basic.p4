@@ -326,16 +326,23 @@ control Egress(
     inout egress_intrinsic_metadata_for_output_port_t eg_oport_md)
 {
 
+    Register<bit<32>, bit<48>>(65535) egress_timestamp_reg;
+    RegisterAction<bit<32>, bit<48>, bit<48>>(egress_timestamp_reg) update_egress_timestamp = {
+        void apply(inout bit<48> reg_data, out bit<48> result) {
+            result = eg_prsr_md.global_tstamp;
+            reg_data = result;
+        }
+    };
+
+    action compute_q_delay(bit<48> egress_timestamp) {
+        hdr.report.q_delay = egress_timestamp - meta.ingress_timestamp;
+    }
+
     action add_sw_stats(switch_ID_t ID) {
         hdr.report.setValid();
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
         // hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
-        bit<64> e_ts = (bit<64>)eg_prsr_md.global_tstamp;
-        bit<64> i_ts = (bit<64>)meta.ingress_timestamp;
-        bit<64> delay;
-        delay = e_ts - i_ts;
-        hdr.report.q_delay = delay;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
@@ -375,8 +382,18 @@ control Egress(
     }
 
     apply {
+        // if (hdr.ipv4.isValid()) {
+        //     add_queue_statistics.apply();
+        //     decision_tree.apply();
+        //     hdr.report.cca = meta.cca;
+        // }
         if (hdr.ipv4.isValid()) {
             add_queue_statistics.apply();
+            
+            bit<32> flow_id = hdr.report.data_sent[31:0]; // usa parte baja como índice (puedes mejorar esto si ya tienes `flow_id`)
+            bit<48> egress_ts = update_egress_timestamp.execute(flow_id);
+            compute_q_delay(egress_ts);
+
             decision_tree.apply();
             hdr.report.cca = meta.cca;
         }
