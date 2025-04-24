@@ -333,7 +333,9 @@ control Egress(
         // hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
         bit<64> e_ts = (bit<64>)eg_prsr_md.global_tstamp;
         bit<64> i_ts = (bit<64>)meta.ingress_timestamp;
-        hdr.report.q_delay = e_ts - i_ts;
+        bit<64> delay;
+        delay = e_ts - i_ts;
+        hdr.report.q_delay = delay;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
