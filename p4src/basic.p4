@@ -364,12 +364,12 @@ control Egress(
     //     }
     // };
 
-    Register<bit<32>, bit<64>>(65536) last_timestamp_reg;
-    RegisterAction<bit<32>, bit<64>, bit<64>>(last_timestamp_reg) read_ingress_timestamp = {
-        void apply(inout bit<64> ingress_ts, out bit<64> result) {
-            result = ingress_ts;
-        }
-    };
+    // Register<bit<32>, bit<64>>(65536) last_timestamp_reg;
+    // RegisterAction<bit<32>, bit<64>, bit<64>>(last_timestamp_reg) read_ingress_timestamp = {
+    //     void apply(inout bit<64> ingress_ts, out bit<64> result) {
+    //         result = ingress_ts;
+    //     }
+    // };
 
     action add_sw_stats(switch_ID_t ID) {
         hdr.report.setValid();
@@ -377,8 +377,8 @@ control Egress(
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
         // hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
         // bit<64> q_delay = compute_q_delay.execute((bit<64>)meta.ingress_timestamp, (bit<64>)eg_prsr_md.global_tstamp, q_delay);
-        bit<64> ingress_ts;
-        ingress_ts = read_ingress_timestamp.execute(ingress_ts);
+        bit<64> ingress_ts = (bit<64>)meta.ingress_timestamp
+        // ingress_ts = read_ingress_timestamp.execute(ingress_ts);
 
         bit<64> egress_ts = (bit<64>)eg_prsr_md.global_tstamp;
         bit<64> q_delay_val = egress_ts - ingress_ts;
