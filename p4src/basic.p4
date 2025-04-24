@@ -62,7 +62,7 @@ header report_h {
     bit<8>  switch_ID;
     bit<48> ingress_timestamp;
     bit<48> egress_timestamp;
-    bit<64> q_delay;
+    bit<48> q_delay;
     bit<24> q_depth;
     bit<32> data_sent;
     bit<48> interarrival_value;
