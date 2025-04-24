@@ -389,7 +389,7 @@ control Egress(
         hdr.report.setValid();
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
-        // hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
+        hdr.report.q_delay           = meta.packet_queue_delay;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
@@ -437,10 +437,8 @@ control Egress(
 		calc_flow_id.apply();
 		calc_packet_hash.apply();
         if (hdr.ipv4.isValid()) {
-            add_queue_statistics.apply();
-
             exec_calc_queue_delay_packet();
-
+            add_queue_statistics.apply();
             decision_tree.apply();
             hdr.report.cca = meta.cca;
         }
