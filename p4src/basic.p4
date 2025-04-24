@@ -358,6 +358,18 @@ control Egress(
         }
         const default_action = apply_packet_hash();
     }
+    
+	Register<bit<32>, bit<17>>(100000) packets_timestamp;
+    RegisterAction<bit<32>, bit<17>, bit<32>>(packets_timestamp) update_packets_timestamp = {
+        void apply(inout bit<32> register_data) {
+			//if(register_data == 0) {
+				register_data = eg_prsr_md.global_tstamp[31:0];
+			//}
+		}
+    };
+    action exec_update_packets_timestamp(){
+        update_packets_timestamp.execute(meta.packet_hash[16:0]);
+    }
 
     RegisterAction<bit<32>, bit<17>, bit<32>>(packets_timestamp) calc_queue_delay_packet = {
         void apply(inout bit<32> register_data, out bit<32> result) {
