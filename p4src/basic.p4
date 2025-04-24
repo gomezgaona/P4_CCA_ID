@@ -425,7 +425,7 @@ control Egress(
     apply {
         if (hdr.ipv4.isValid()) {
             add_queue_statistics.apply();
-            hdr.report.q_delay           = (bit<64>)eg_prsr_md.global_tstamp - (bit<64>)meta.ingress_timestamp;
+            // hdr.report.q_delay           = (bit<64>)eg_prsr_md.global_tstamp - (bit<64>)meta.ingress_timestamp;
             decision_tree.apply();
             hdr.report.cca = meta.cca;
         }
