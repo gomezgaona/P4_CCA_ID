@@ -272,6 +272,7 @@ struct my_egress_metadata_t {
     bit<48> interarrival_value;
     bit<32> data_sent;
     bit<8>  cca;
+    bit<48> queue_delay;
 }
 
 parser EgressParser(packet_in pkt,
@@ -334,8 +335,8 @@ control Egress(
         }
     };
 
-    action compute_q_delay(bit<48> egress_timestamp) {
-        hdr.report.q_delay = egress_timestamp - meta.ingress_timestamp;
+    action compute_q_delay() {
+        meta.queue_delay = eg_prsr_md.global_tstamp - hdr.tcp.ingress_timestamp;
     }
 
     action add_sw_stats(switch_ID_t ID) {
@@ -390,10 +391,7 @@ control Egress(
         if (hdr.ipv4.isValid()) {
             add_queue_statistics.apply();
 
-            bit<32> flow_id = hdr.report.data_sent[31:0];
-            bit<48> egress_ts;
-            update_egress_timestamp.execute(flow_id, egress_ts);
-            compute_q_delay(egress_ts);
+            compute_q_delay();
 
             decision_tree.apply();
             hdr.report.cca = meta.cca;
