@@ -410,7 +410,7 @@ control Egress(
 
     table decision_tree {
         key = {
-            hdr.report.q_delay            : exact;
+            hdr.report.q_delay            : exact; // aaaaaaaaaaaaaaaaaaaaaaaaaa
             hdr.report.q_depth            : exact;
             hdr.report.interarrival_value : exact;
         }
