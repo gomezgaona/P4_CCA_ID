@@ -334,8 +334,8 @@ control Egress(
             hdr.ipv4.src_addr,
             hdr.ipv4.dst_addr,
             hdr.ipv4.protocol,
-            hdr.tcp.src_port,
-            hdr.tcp.dst_port
+            hdr.tcp.srcPort,
+            hdr.tcp.dstPort
         });
     }
     table calc_flow_id {
@@ -349,7 +349,7 @@ control Egress(
     action apply_packet_hash() {
         meta.packet_hash = packet_hash.get({
             meta.flow_id,
-			hdr.tcp.seq_no
+			hdr.tcp.seqNo
         });
     }
     table calc_packet_hash {
@@ -358,7 +358,7 @@ control Egress(
         }
         const default_action = apply_packet_hash();
     }
-    
+
 	Register<bit<32>, bit<17>>(100000) packets_timestamp;
     RegisterAction<bit<32>, bit<17>, bit<32>>(packets_timestamp) update_packets_timestamp = {
         void apply(inout bit<32> register_data) {
