@@ -365,7 +365,7 @@ control Egress(
     };
 
     Register<bit<32>, bit<64>>(65536) last_timestamp_reg; // mismo nombre que en Ingress
-    RegisterAction<bit<32>, bit<64>, bit<64>>(ingress_ts_reg) read_ingress_timestamp = {
+    RegisterAction<bit<32>, bit<64>, bit<64>>(last_timestamp_reg) read_ingress_timestamp = {
         void apply(inout bit<64> ingress_ts, out bit<64> result) {
             result = ingress_ts;
         }
