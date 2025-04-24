@@ -380,7 +380,7 @@ control Egress(
         bit<64> ingress_ts;
         ingress_ts = read_ingress_timestamp.execute(hdr.report.switch_ID);  // usa el ID de flujo si lo guardaste también en report
 
-        bit<64> egress_ts = eg_prsr_md.global_tstamp;
+        bit<64> egress_ts = (bit<64>)eg_prsr_md.global_tstamp;
         bit<64> q_delay_val = egress_ts - ingress_ts;
         hdr.report.q_delay = q_delay_val;
         // hdr.report.q_delay = q_delay;
