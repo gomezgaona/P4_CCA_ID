@@ -377,12 +377,12 @@ control Egress(
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
         // hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
         // bit<64> q_delay = compute_q_delay.execute((bit<64>)meta.ingress_timestamp, (bit<64>)eg_prsr_md.global_tstamp, q_delay);
-        bit<64> ingress_ts = (bit<64>)meta.ingress_timestamp;
+        // bit<64> ingress_ts = (bit<64>)meta.ingress_timestamp;
         // ingress_ts = read_ingress_timestamp.execute(ingress_ts);
 
-        bit<64> egress_ts = (bit<64>)eg_prsr_md.global_tstamp;
-        bit<64> q_delay_val = egress_ts - ingress_ts;
-        hdr.report.q_delay = q_delay_val;
+        // bit<64> egress_ts = (bit<64>)eg_prsr_md.global_tstamp;
+        // bit<64> q_delay_val = egress_ts - ingress_ts;
+        // hdr.report.q_delay = q_delay_val;
         // hdr.report.q_delay = q_delay;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
@@ -425,6 +425,7 @@ control Egress(
     apply {
         if (hdr.ipv4.isValid()) {
             add_queue_statistics.apply();
+            hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
             decision_tree.apply();
             hdr.report.cca = meta.cca;
         }
