@@ -260,13 +260,13 @@ control Ingress(
             bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
             bit<32> prev_time = update_prev_time.execute(meta.flow_id);
             bit<32> current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
-            bit<32> time_diff = current_time - prev_time;
+            // bit<32> time_diff = current_time - prev_time; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
-            if (time_diff > 0) {
-                compute_sending_rate(bytes);
-            } else {
-                compute_sending_rate_zero();
-            }
+            // if (time_diff > 0) {
+            //     compute_sending_rate(bytes);
+            // } else {
+            //     compute_sending_rate_zero();
+            // }
         }
     }
 }
