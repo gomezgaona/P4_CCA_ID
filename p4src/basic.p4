@@ -62,7 +62,7 @@ header report_h {
     bit<8>  switch_ID;
     bit<48> ingress_timestamp;
     bit<48> egress_timestamp;
-    bit<48> q_delay;
+    bit<64> q_delay;
     bit<24> q_depth;
     bit<32> data_sent;
     bit<48> interarrival_value;
@@ -425,7 +425,7 @@ control Egress(
     apply {
         if (hdr.ipv4.isValid()) {
             add_queue_statistics.apply();
-            hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
+            hdr.report.q_delay           = (bit<64>)eg_prsr_md.global_tstamp - (bit<64>)meta.ingress_timestamp;
             decision_tree.apply();
             hdr.report.cca = meta.cca;
         }
