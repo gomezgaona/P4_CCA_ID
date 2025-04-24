@@ -177,20 +177,6 @@ control Ingress(
         ig_dprsr_md.drop_ctl = 1;
     }
 
-    // action get_interarrival_time() {
-    //     bit<32> last_timestamp;
-    //     bit<48> current_timestamp;
-
-    //     last_timestamp = update_last_timestamp.execute(meta.flow_id);
-    //     current_timestamp = ig_intr_md.ingress_mac_tstamp;
-
-    //     if (last_timestamp != 0) {
-    //         meta.interarrival_value = current_timestamp - (bit<48>)last_timestamp;
-    //     } else {
-    //         meta.interarrival_value = 0;
-    //     }
-    // }
-
     action compute_interarrival_valid(bit<32> last_timestamp) {
         bit<48> current_timestamp = ig_intr_md.ingress_mac_tstamp;
         meta.interarrival_value = current_timestamp - (bit<48>)last_timestamp;
@@ -219,22 +205,6 @@ control Ingress(
         size = 1024;
         const default_action = drop();
     }
-
-    // action update_sending_rate() {
-    //     bit<32> bytes;
-    //     bit<32> prev_time;
-    //     bit<32> current_time;
-    //     bit<32> time_diff;
-
-    //     bytes = update_bytes_transmitted.execute(meta.flow_id);
-    //     prev_time = update_prev_time.execute(meta.flow_id);
-    //     current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
-    //     time_diff = current_time - prev_time;
-
-    //     if (time_diff > 0) {
-    //         meta.data_sent = bytes * 8;
-    //     }
-    // }
 
     action compute_sending_rate(bit<32> bytes) {
         meta.data_sent = bytes * 8;
@@ -356,34 +326,14 @@ control Egress(
     inout egress_intrinsic_metadata_for_output_port_t eg_oport_md)
 {
 
-    // Register<bit<32>, bit<32>>(1024) q_delay;
-
-    // RegisterAction<bit<64>, bit<64>, bit<64>>(q_delay) compute_q_delay = {
-    //     void apply(inout bit<64> ingress_ts, inout bit<64> egress_ts, out bit<64> q_delay) {
-    //         q_delay = egress_ts - ingress_ts;
-    //     }
-    // };
-
-    // Register<bit<32>, bit<64>>(65536) last_timestamp_reg;
-    // RegisterAction<bit<32>, bit<64>, bit<64>>(last_timestamp_reg) read_ingress_timestamp = {
-    //     void apply(inout bit<64> ingress_ts, out bit<64> result) {
-    //         result = ingress_ts;
-    //     }
-    // };
-
     action add_sw_stats(switch_ID_t ID) {
         hdr.report.setValid();
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
         // hdr.report.q_delay           = eg_prsr_md.global_tstamp - meta.ingress_timestamp;
-        // bit<64> q_delay = compute_q_delay.execute((bit<64>)meta.ingress_timestamp, (bit<64>)eg_prsr_md.global_tstamp, q_delay);
-        // bit<64> ingress_ts = (bit<64>)meta.ingress_timestamp;
-        // ingress_ts = read_ingress_timestamp.execute(ingress_ts);
-
-        // bit<64> egress_ts = (bit<64>)eg_prsr_md.global_tstamp;
-        // bit<64> q_delay_val = egress_ts - ingress_ts;
-        // hdr.report.q_delay = q_delay_val;
-        // hdr.report.q_delay = q_delay;
+        bit<64> e_ts = (bit<64>)eg_prsr_md.global_tstamp;
+        bit<64> i_ts = (bit<64>)meta.ingress_timestamp;
+        hdr.report.q_delay = e_ts - i_ts;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
@@ -425,7 +375,6 @@ control Egress(
     apply {
         if (hdr.ipv4.isValid()) {
             add_queue_statistics.apply();
-            // hdr.report.q_delay           = (bit<64>)eg_prsr_md.global_tstamp - (bit<64>)meta.ingress_timestamp;
             decision_tree.apply();
             hdr.report.cca = meta.cca;
         }
