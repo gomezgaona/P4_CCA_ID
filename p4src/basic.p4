@@ -62,7 +62,7 @@ header report_h {
     bit<8>  switch_ID;
     bit<48> ingress_timestamp;
     bit<48> egress_timestamp;
-    bit<64> q_delay;
+    bit<48> q_delay;
     bit<24> q_depth;
     bit<32> data_sent;
     bit<48> interarrival_value;
@@ -389,7 +389,7 @@ control Egress(
         hdr.report.setValid();
         hdr.report.ingress_timestamp = meta.ingress_timestamp;
         hdr.report.egress_timestamp  = eg_prsr_md.global_tstamp;
-        hdr.report.q_delay           = meta.packet_queue_delay;
+        hdr.report.q_delay           = (bit<48>)meta.packet_queue_delay;
         hdr.report.q_depth           = (bit<24>)eg_intr_md.enq_qdepth;
         hdr.report.switch_ID         = ID;
         hdr.report.interarrival_value = meta.interarrival_value;
