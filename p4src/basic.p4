@@ -169,10 +169,10 @@ control Ingress(
         }
     };
 
-    RegisterAction<bit<32>, bit<32>, bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) compute_sending_rate_ra = {
-        void apply(inout bit<32> reg_data, in bit<32> prev_time, in bit<32> curr_time, out bit<32> diff) {
-            // bit<32> prev_time = reg_data;
-            // bit<32> curr_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+    RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) compute_sending_rate_ra = {
+        void apply(inout bit<32> reg_data, out bit<32> diff) {
+            bit<32> prev_time = reg_data;
+            bit<32> curr_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
             // bit<32> diff;
             if (curr_time > prev_time) {
                 diff = curr_time - prev_time;
@@ -244,7 +244,7 @@ control Ingress(
             bit<32> current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
 
             bit<32> diff;
-            diff = compute_sending_rate_ra.execute(meta.flow_id, prev_time, current_time, diff);
+            diff = compute_sending_rate_ra.execute(meta.flow_id);
             if (diff > 0) {
                 compute_sending_rate(bytes);
             } else {
