@@ -183,8 +183,7 @@ control Ingress(
             reg_data = curr_time;
 
             if (diff > 0) {
-                // bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
-                rate = update_bytes_transmitted.execute(meta.flow_id);
+                bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
 
                 // rate = bytes * 8;
             } else {
