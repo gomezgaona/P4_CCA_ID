@@ -169,7 +169,7 @@ control Ingress(
         }
     };
 
-    RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) compute_sending_rate_ra = {
+    RegisterAction<bit<32>, bit<32>, bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) compute_sending_rate_ra = {
         void apply(inout bit<32> reg_data, in bit<32> prev_time, in bit<32> curr_time, out bit<32> diff) {
             // bit<32> prev_time = reg_data;
             // bit<32> curr_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
