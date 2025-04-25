@@ -168,7 +168,7 @@ control Ingress(
             reg_data = (bit<32>) ig_intr_md.ingress_mac_tstamp;
         }
     };
-    
+
     RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) compute_sending_rate_ra = {
         void apply(inout bit<32> reg_data, out bit<32> rate) {
             bit<32> prev_time = reg_data;
@@ -183,10 +183,10 @@ control Ingress(
             reg_data = curr_time;
 
             if (diff > 0) {
-                // suponiendo que los bytes ya están acumulados en otro registro
-                bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
+                // bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
+                rate = update_bytes_transmitted.execute(meta.flow_id);
 
-                rate = bytes * 8;
+                // rate = bytes * 8;
             } else {
                 rate = 0;
             }
