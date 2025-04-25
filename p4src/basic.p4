@@ -183,7 +183,8 @@ control Ingress(
             reg_data = curr_time;
 
             if (diff > 0) {
-                bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
+                bit<32> bytes;
+                update_bytes_transmitted.execute(meta.flow_id, bytes);
 
                 // rate = bytes * 8;
             } else {
@@ -364,6 +365,7 @@ control Egress(
         actions = {
             apply_hash;
         }
+        size = 32;
         const default_action = apply_hash();
     }
 
@@ -378,6 +380,7 @@ control Egress(
         actions = {
             apply_packet_hash;
         }
+        size = 32;
         const default_action = apply_packet_hash();
     }
 
