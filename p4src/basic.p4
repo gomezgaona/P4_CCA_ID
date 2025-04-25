@@ -243,7 +243,8 @@ control Ingress(
             bit<32> prev_time = update_prev_time.execute(meta.flow_id);
             bit<32> current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
 
-            bit<32> diff = compute_sending_rate_ra.execute(meta.flow_id, prev_time, current_time, diff);
+            bit<32> diff;
+            diff = compute_sending_rate_ra.execute(meta.flow_id, prev_time, current_time, diff);
             if (diff > 0) {
                 compute_sending_rate(bytes);
             } else {
