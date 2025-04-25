@@ -162,12 +162,13 @@ control Ingress(
 
     // SENDING_RATE_PREV_TIME
     Register<bit<32>, bit<32>>(65535) sending_rate_prev_time;
-    // RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) update_prev_time = {
-    //     void apply(inout bit<32> reg_data, out bit<32> result) {
-    //         result = reg_data;
-    //         reg_data = (bit<32>) ig_intr_md.ingress_mac_tstamp;
-    //     }
-    // };
+    RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) update_prev_time = {
+        void apply(inout bit<32> reg_data, out bit<32> result) {
+            result = reg_data;
+            reg_data = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+        }
+    };
+    
     RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) compute_sending_rate_ra = {
         void apply(inout bit<32> reg_data, out bit<32> rate) {
             bit<32> prev_time = reg_data;
