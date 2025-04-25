@@ -162,10 +162,33 @@ control Ingress(
 
     // SENDING_RATE_PREV_TIME
     Register<bit<32>, bit<32>>(65535) sending_rate_prev_time;
-    RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) update_prev_time = {
-        void apply(inout bit<32> reg_data, out bit<32> result) {
-            result = reg_data;
-            reg_data = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+    // RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) update_prev_time = {
+    //     void apply(inout bit<32> reg_data, out bit<32> result) {
+    //         result = reg_data;
+    //         reg_data = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+    //     }
+    // };
+    RegisterAction<bit<32>, bit<32>, bit<32>>(sending_rate_prev_time) compute_sending_rate_ra = {
+        void apply(inout bit<32> reg_data, out bit<32> rate) {
+            bit<32> prev_time = reg_data;
+            bit<32> curr_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
+            bit<32> diff;
+            if (curr_time > prev_time) {
+                diff = curr_time - prev_time;
+            } else {
+                diff = 0;
+            }
+
+            reg_data = curr_time;
+
+            if (diff > 0) {
+                // suponiendo que los bytes ya están acumulados en otro registro
+                bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
+
+                rate = bytes * 8;
+            } else {
+                rate = 0;
+            }
         }
     };
 
@@ -218,7 +241,6 @@ control Ingress(
         if (hdr.ipv4.isValid()) {
             compute_flow_id();
             forwarding.apply();
-            // get_interarrival_time();
             bit<32> last_timestamp = update_last_timestamp.execute(meta.flow_id);
             if (last_timestamp != 0) {
                 compute_interarrival_valid(last_timestamp);
@@ -226,17 +248,17 @@ control Ingress(
                 compute_interarrival_first();
             }
             meta.ingress_timestamp = ig_intr_md.ingress_mac_tstamp;
-            // update_sending_rate();
             bit<32> bytes = update_bytes_transmitted.execute(meta.flow_id);
             bit<32> prev_time = update_prev_time.execute(meta.flow_id);
             bit<32> current_time = (bit<32>) ig_intr_md.ingress_mac_tstamp;
-            // bit<32> time_diff = current_time - prev_time; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+            // bit<32> time_diff = current_time - prev_time;
 
             // if (time_diff > 0) {
             //     compute_sending_rate(bytes);
             // } else {
             //     compute_sending_rate_zero();
             // }
+            meta.data_sent = compute_sending_rate_ra.execute(meta.flow_id);
         }
     }
 }
